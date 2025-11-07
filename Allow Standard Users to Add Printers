@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Mandatory unlocks
+security authorizationdb write system.preferences allow
+security authorizationdb write system.settings allow
+
+# Unlock Print & Scan Preference pane
+security authorizationdb write system.preferences.printing allow
+security authorizationdb write system.settings.printing allow
+dseditgroup -o edit -n /Local/Default -a everyone -t group lpadmin
