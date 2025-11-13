@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Grab Current User
+CURRENT_USER=$(stat -f%Su /dev/console)
+USER_DB="/Users/$CURRENT_USER/Library/Application Support/com.apple.TCC/TCC.db"
+SYSTEM_DB="/Library/Application Support/com.apple.TCC/TCC.db"
+#Use basic term or bundle ID
+SEARCH_TERM="Chrome"
+
+echo "---------------------------------------------------"
+echo "🔍 Searching for '$SEARCH_TERM' in TCC Databases"
+echo "---------------------------------------------------"
+
+# search a specific DB
+search_db() {
+    local db_path="$1"
+    local db_label="$2"
+    
+    echo "Checking $db_label DB..."
+    
+    if [ ! -r "$db_path" ]; then
+        echo "   [!] Cannot read file (Check Full Disk Access)."
+        return
+    fi
+
+    # Search for the term anywhere
+    RESULTS=$(sudo sqlite3 "$db_path" "SELECT service, client, auth_value FROM access WHERE client LIKE '%$SEARCH_TERM%';" 2>/dev/null)
+
+    if [ -z "$RESULTS" ]; then
+        echo "   No entries found for '$SEARCH_TERM'."
+    else
+        echo "$RESULTS" | while IFS='|' read -r service client auth; do
+            # Translate Auth Value
+            if [ "$auth" == "2" ]; then status="✅ ALLOWED"; 
+            elif [ "$auth" == "0" ]; then status="❌ DENIED"; 
+            else status="❓ ($auth)"; fi
+            
+            echo "   Found: $client"
+            echo "     Service: $service"
+            echo "     Status : $status"
+            echo "   ---"
+        done
+    fi
+    echo ""
+}
+
+# Run the search
+search_db "$USER_DB" "USER"
+search_db "$SYSTEM_DB" "SYSTEM"
